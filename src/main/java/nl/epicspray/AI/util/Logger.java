@@ -34,7 +34,7 @@ public class Logger {
     public void log(LogLevel level, String message, int strace_depth) {
         Formatter format = new Formatter();
         LocalDateTime date = LocalDateTime.now();
-        String origin = Thread.currentThread().getStackTrace()[strace_depth].getClassName().substring("nl.epicspray.richnotes.".length());
+        String origin = Thread.currentThread().getStackTrace()[strace_depth].getClassName().substring("nl.epicspray.".length());
         String method = Thread.currentThread().getStackTrace()[strace_depth].getMethodName();
         if (this.logLevel.getLevel() < level.getLevel()) {
             return;
