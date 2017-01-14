@@ -17,11 +17,13 @@ public class Tokenizer {
     public File folder;
     public List<String> classes;
 
+    // Initialize tokenizer
     public Tokenizer(File folder, List<String> classes) {
         this.folder = folder;
         this.classes = classes;
     }
 
+    // Tokenize the folder
     public Map<Map<String, Integer>, String> tokenizeFolder() {
         Map<Map<String, Integer>, String> docs = new HashMap<Map<String, Integer>, String>();
         String fileClass;
@@ -50,12 +52,13 @@ public class Tokenizer {
         return docs;
     }
 
+    // Tokenize a file
     private Map<String, Integer> tokenizeFile(File file) throws FileNotFoundException {
         Map<String, Integer> fileMap = new HashMap<String, Integer>();
 
         Scanner in = new Scanner(file);
         while (in.hasNext()) {
-            String s = in.nextLine();
+            String s = in.next();
 
         }
 
