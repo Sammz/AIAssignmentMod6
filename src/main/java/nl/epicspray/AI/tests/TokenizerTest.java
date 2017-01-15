@@ -1,5 +1,6 @@
 package nl.epicspray.AI.tests;
 
+import nl.epicspray.AI.Bayes;
 import nl.epicspray.AI.Protocol;
 import nl.epicspray.AI.exceptions.CouldNotStartTokenizingException;
 import nl.epicspray.AI.exceptions.IllegalFileNameException;
@@ -15,7 +16,7 @@ import java.util.Map;
 public class TokenizerTest {
 
     public static void main(String[] args) {
-        File f = new File("C:\\Users\\Sam\\Downloads\\AI-blogs\\F"); // The path to the folder
+        File f = new File("C:\\Users\\Gebruiker\\Documents\\Corpus\\blogs\\F"); // The path to the folder
         List<String> classes = Protocol.genderClass;
         Map<Map<String, Integer>, String> tokenized = null;
         Tokenizer t= new Tokenizer();;
