@@ -40,17 +40,17 @@ public class Bayes {
         int totalDocs = 0;
         for(String s : C){
             for(Map<String, Integer> map : D.keySet()){
-                SystemController.getLogger().debug("Doc found with class: " + D.get(map) + " " + s + " " + s.equals(D.get(map)));
                 if(s.equals(D.get(map))){
                     totalDocs++;
                     totalDocsPerClass.put(s, totalDocsPerClass.remove(s) + 1);
                     SystemController.getLogger().debug("Found Doc with class: " + s + ", total : " + totalDocsPerClass.get(s));
                     for(String c : map.keySet()){
                         if(countWordsPerClass.get(s).containsKey(c)){
-                            countWordsPerClass.get(s).put(c, countWordsPerClass.get(s).remove(c) + 1);
+                            countWordsPerClass.get(s).put(c, countWordsPerClass.get(s).remove(c) + map.get(c));
                         } else {
-                            countWordsPerClass.get(s).put(c, 1);
+                            countWordsPerClass.get(s).put(c, map.get(c));
                         }
+                        SystemController.getLogger().debug("Current words: " + c + " in class: " + s + " = " + countWordsPerClass.get(s).get(c));
                     }
                 }
             }
@@ -64,14 +64,24 @@ public class Bayes {
         //Calculate total amount of words
         for(String c : C){
             for(String s : countWordsPerClass.get(c).keySet()){
+                SystemController.getLogger().debug("Final words: " + s + " in class: " + c + " = " + countWordsPerClass.get(c).get(s));
                 totalWordsPerClass.put(c, totalWordsPerClass.get(c) + countWordsPerClass.get(c).get(s));
+            }
+        }
+        for(String s : V){
+            for(String c : C){
+                if(!countWordsPerClass.get(c).containsKey(s)){
+                    countWordsPerClass.get(c).put(s, 0);
+                }
             }
         }
 
         //calculate actual prior chances
         for(String c : C){
             for(String s : countWordsPerClass.get(c).keySet()){
-                double val = (countWordsPerClass.get(c).get(s) + K) / (totalWordsPerClass.get(c) + K + V.size());
+                double val = ((double)countWordsPerClass.get(c).get(s) + K) / (totalWordsPerClass.get(c) + (K * V.size()));
+                SystemController.getLogger().debug("Chance on word: " + s + " for class: " + c + " = " + val +
+                        " ( (" + countWordsPerClass.get(c).get(s) + " + " + K + ") / (" +  (totalWordsPerClass.get(c)) + " + " +(K * V.size()) + ")");
                 chanceOnWordGivenClass.get(c).put(s, val);
             }
         }
@@ -82,12 +92,14 @@ public class Bayes {
         String bestClass = null;
 
         for(String c : C){
+            SystemController.getLogger().debug("Class: " + c);
             double val = CPrior.get(c);
             for(String s : doc.keySet()){
                 if(chanceOnWordGivenClass.get(c).containsKey(s)){
-                    val = val * (float) (Math.pow(chanceOnWordGivenClass.get(c).get(s), doc.get(s)));
+                    val = val * (Math.pow(chanceOnWordGivenClass.get(c).get(s), doc.get(s)));
                 }
             }
+            SystemController.getLogger().debug("Total chance for class: " + c + " = " + val);
             if(max < val){
                 bestClass = c;
                 max = val;
