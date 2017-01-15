@@ -18,7 +18,7 @@ public class Tokenizer {
     private String[] stopWordsList;
 
     // Make tokenizer, instantiates the stopWordsList.
-    public Tokenizer(){
+    public Tokenizer() {
         stopWordsList = cleanString(Protocol.stopWordsList).split("\\n");
     }
 
