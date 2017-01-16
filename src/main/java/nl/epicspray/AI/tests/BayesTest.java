@@ -87,9 +87,9 @@ public class BayesTest {
     }
 
     public void testWithData(){
-        File f = new File("C:\\Users\\Gebruiker\\Documents\\Corpus\\blogs\\F"); // The path to the folder
-        File m = new File("C:\\Users\\Gebruiker\\Documents\\Corpus\\blogs\\M"); // The path to the folder
-        File train = new File("C:\\Users\\Gebruiker\\Documents\\Corpus\\blogs\\Test"); // The path to the folder
+        File f = new File("C:\\Users\\Sam\\Downloads\\AI-blogs\\F"); // The path to the folder
+        File m = new File("C:\\Users\\Sam\\Downloads\\AI-blogs\\M"); // The path to the folder
+        File train = new File("C:\\Users\\Sam\\Downloads\\AI-blogs\\Test"); // The path to the folder
         List<String> classes = Protocol.genderClass;
         Map<Map<String, Integer>, String> tokenizedF = null;
         Map<Map<String, Integer>, String> tokenizedM = null;
