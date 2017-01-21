@@ -85,11 +85,13 @@ public class Main extends Application {
         Label trainFolderLocationLabel = new Label("Location of folder with train data:");
         trainPane.add(trainFolderLocationLabel, 0, 1);
         final TextField trainFolderLocation = new TextField();
+        trainFolderLocation.setPromptText("Enter path to folder");
         trainPane.add(trainFolderLocation, 1, 1);
 
         Label trainClassesLabel = new Label("Classes of documents:");
         trainPane.add(trainClassesLabel, 0, 2);
         final TextField trainClasses = new TextField();
+        trainClasses.setPromptText("class class class class ...");
         trainPane.add(trainClasses, 1, 2);
 
         Button trainButton = new Button("Train");
@@ -146,11 +148,13 @@ public class Main extends Application {
         final Label testFolder = new Label("Location of folder to test:");
         testPane.add(testFolder, 0, 1);
         final TextField testFolderLocation = new TextField();
+        testFolderLocation.setPromptText("Enter path to folder");
         testPane.add(testFolderLocation, 1, 1);
 
         Label testClassesLabel = new Label("Classes of documents:");
         testPane.add(testClassesLabel, 0, 2);
         final TextField testClasses = new TextField();
+        testClasses.setPromptText("class class class class ...");
         testPane.add(testClasses, 1, 2);
 
         Button testButton = new Button("Test");
