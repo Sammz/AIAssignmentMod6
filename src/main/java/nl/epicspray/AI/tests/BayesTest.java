@@ -2,7 +2,7 @@ package nl.epicspray.AI.tests;
 
 
 import nl.epicspray.AI.Bayes;
-import nl.epicspray.AI.Protocol;
+import nl.epicspray.AI.StopWordsList;
 import nl.epicspray.AI.Tokenizer;
 import nl.epicspray.AI.exceptions.CouldNotStartTokenizingException;
 import nl.epicspray.AI.exceptions.IllegalFileNameException;
@@ -21,7 +21,7 @@ public class BayesTest {
     public static void main(String[] args) {
         SystemController.getLogger().debug("Log: " + Math.log(2.600009360033696E-6));
         SystemController.getLogger().debug("Test");
-        Map<Map<String,Integer>, String> training = new HashMap<Map<String, Integer>, String>();
+        Map<Map<String, Integer>, String> training = new HashMap<Map<String, Integer>, String>();
         Map<String, Integer> file1 = new HashMap<String, Integer>();
         file1.put("Uganda", 2);
         file1.put("Bank", 1);
@@ -52,7 +52,7 @@ public class BayesTest {
         SystemController.getLogger().warning("-----------starting test------------");
         String word = "hello";
         Map<String, Map<String, Map<Boolean, Integer>>> chiSquareMap = new HashMap<String, Map<String, Map<Boolean, Integer>>>();
-        List<String> C  = new ArrayList<String>();
+        List<String> C = new ArrayList<String>();
         C.add("A");
         C.add("B");
         chiSquareMap.put("A", new HashMap<String, Map<Boolean, Integer>>());
@@ -86,37 +86,38 @@ public class BayesTest {
         new BayesTest().testWithData();
     }
 
-    public void testWithData(){
-        File f = new File("C:\\Users\\Sam\\Downloads\\AI-blogs\\F"); // The path to the folder
-        File m = new File("C:\\Users\\Sam\\Downloads\\AI-blogs\\M"); // The path to the folder
-        File train = new File("C:\\Users\\Sam\\Downloads\\AI-blogs\\Test"); // The path to the folder
-        List<String> classes = Protocol.genderClass;
-        Map<Map<String, Integer>, String> tokenizedF = null;
-        Map<Map<String, Integer>, String> tokenizedM = null;
-        Map<Map<String, Integer>, String> tokenizedT = new HashMap<Map<String, Integer>, String>();
-        Map<Map<String, Integer>, String> tokenizedTrain = null;
-        Tokenizer t= new Tokenizer();
-        try {
-            tokenizedF = t.tokenizeFolder(f, classes);
-            tokenizedM = t.tokenizeFolder(m, classes);
-            tokenizedTrain = t.tokenizeFolder(train, classes);
-            tokenizedT.putAll(tokenizedF);
-            tokenizedT.putAll(tokenizedM);
-        } catch (CouldNotStartTokenizingException e) {
-            e.printStackTrace();
-            System.out.println(e.getMessage());
-        } catch (IllegalFileNameException e) {
-            e.printStackTrace();
-            System.out.println(e.getMessage());
-        }
-
-        Bayes bayes = new Bayes();
-        bayes.train(classes, tokenizedT);
-        for(Map<String, Integer> doc : tokenizedTrain.keySet()){
-            SystemController.getLogger().debug("Classified as: " + bayes.classify(doc) + " correct: " + tokenizedTrain.get(doc));
-        }
-
-        String best = bayes.getHighestChiSquare();
-        SystemController.getLogger().debug("Best ChiSquare: " + best + ", " + bayes.computeChiSquare(best));
+    public void testWithData() {
+//        File f = new File("C:\\Users\\Sam\\Downloads\\AI-blogs\\F"); // The path to the folder
+//        File m = new File("C:\\Users\\Sam\\Downloads\\AI-blogs\\M"); // The path to the folder
+//        File train = new File("C:\\Users\\Sam\\Downloads\\AI-blogs\\Test"); // The path to the folder
+//        List<String> classes = StopWordsList.genderClass;
+//        Map<Map<String, Integer>, String> tokenizedF = null;
+//        Map<Map<String, Integer>, String> tokenizedM = null;
+//        Map<Map<String, Integer>, String> tokenizedT = new HashMap<Map<String, Integer>, String>();
+//        Map<Map<String, Integer>, String> tokenizedTrain = null;
+//        Tokenizer t= new Tokenizer();
+//        try {
+//            tokenizedF = t.tokenizeFolder(f, classes);
+//            tokenizedM = t.tokenizeFolder(m, classes);
+//            tokenizedTrain = t.tokenizeFolder(train, classes);
+//            tokenizedT.putAll(tokenizedF);
+//            tokenizedT.putAll(tokenizedM);
+//        } catch (CouldNotStartTokenizingException e) {
+//            e.printStackTrace();
+//            System.out.println(e.getMessage());
+//        } catch (IllegalFileNameException e) {
+//            e.printStackTrace();
+//            System.out.println(e.getMessage());
+//        }
+//
+//        Bayes bayes = new Bayes();
+//        bayes.train(classes, tokenizedT);
+//        for(Map<String, Integer> doc : tokenizedTrain.keySet()){
+//            SystemController.getLogger().debug("Classified as: " + bayes.classify(doc) + " correct: " + tokenizedTrain.get(doc));
+//        }
+//
+//        String best = bayes.getHighestChiSquare();
+//        SystemController.getLogger().debug("Best ChiSquare: " + best + ", " + bayes.computeChiSquare(best));
+// }
     }
 }

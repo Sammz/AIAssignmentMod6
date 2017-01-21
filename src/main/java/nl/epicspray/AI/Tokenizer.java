@@ -19,33 +19,35 @@ public class Tokenizer {
 
     // Make tokenizer, instantiates the stopWordsList.
     public Tokenizer() {
-        stopWordsList = cleanString(Protocol.stopWordsList).split("\\n");
+        stopWordsList = cleanString(StopWordsList.stopWordsList).split("\\n");
     }
 
     // Makes a map of the class of the file linked to a map of a word and the number of times that word occurs in the file from all files in the given folder.
-    public Map<Map<String, Integer>, String> tokenizeFolder(File folder, List<String> classes) throws IllegalFileNameException, CouldNotStartTokenizingException {
-        if (folder.exists() && folder.isDirectory() && (classes.equals(Protocol.genderClass) || classes.equals(Protocol.mailClass))) {
-            Map<Map<String, Integer>, String> docs = new HashMap<Map<String, Integer>, String>();
-            String fileClass;
-            for (File file : folder.listFiles()) {
-                String fileName = file.getName();
-                if (classes.equals(Protocol.genderClass)) {
-                    if (fileName.contains("M")) {
-                        fileClass = classes.get(0);
-                    } else if (fileName.contains("F")) {
-                        fileClass = classes.get(1);
-                    } else throw new IllegalFileNameException("File: " + fileName + "    has no M or F identifier.");
-                } else {
-                    if (fileName.contains("p")) {
-                        fileClass = classes.get(0);
-                    } else
-                        fileClass = classes.get(1);
+    public Map<Map<String, Integer>, String> tokenizeFolder(String option, File folder, List<String> classes) throws IllegalFileNameException, CouldNotStartTokenizingException {
+
+        Map<Map<String, Integer>, String> docs = new HashMap<Map<String, Integer>, String>();
+        if (option.equals("train")) {
+            if (folder.exists() && folder.isDirectory()) {
+                String fileClass;
+                for (File fileFolder : folder.listFiles()) {
+                    if (fileFolder.exists() && fileFolder.isDirectory()) {
+                        if (classes.contains(fileFolder.getName())) {
+                            fileClass = fileFolder.getName();
+                        } else throw new IllegalFileNameException("One of the folders is not named as a class you specified.");
+                        for (File file : fileFolder.listFiles()) {
+                            docs.put(tokenizeFile(file), fileClass);
+                        }
+                    }
                 }
-                docs.put(tokenizeFile(file), fileClass);
-            }
+                return docs;
+            } else
+                throw new CouldNotStartTokenizingException("Given file doesn't exist or is no folder.");
+        } else if(option.equals("test")){
+
+
             return docs;
-        } else
-            throw new CouldNotStartTokenizingException("Given file doesn't exist or is no folder, or list of classes is not conform protocol.");
+
+        } else throw new CouldNotStartTokenizingException("Internal error");
     }
 
     // Tokenize a file
