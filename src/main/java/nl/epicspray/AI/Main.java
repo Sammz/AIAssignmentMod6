@@ -30,6 +30,7 @@ public class Main extends Application {
 
     final Bayes bayes = new Bayes();
     final Tokenizer tokenizer = new Tokenizer();
+    final Windows windows= new Windows();
 
     public static void main(String[] args) {
         launch(args);
@@ -111,12 +112,7 @@ public class Main extends Application {
             @Override
             public void handle(ActionEvent t) {
 
-                HBox l = new HBox();
-                Text loadText = new Text("Loading...");
-                l.getChildren().add(loadText);
-                Stage loadStage = new Stage();
-                Scene scene = new Scene(l, 250, 70);
-                loadStage.setScene(scene);
+                Stage loadStage = windows.makeLoadStage();
                 loadStage.show();
 
                 String option = "train";
@@ -131,14 +127,14 @@ public class Main extends Application {
                     tokenized = tokenizer.tokenizeFolder(option, trainFolder, classes);
                 } catch (IllegalFileNameException e) {
                     e.printStackTrace();
-                    loadText.setText("Error: " + e.getMessage());
+                    errorMessage.setText("Error: " + e.getMessage());
                 } catch (CouldNotStartTokenizingException e) {
                     e.printStackTrace();
-                    loadText.setText("Error: " + e.getMessage());
+                    errorMessage.setText("Error: " + e.getMessage());
                 }
                 bayes.train(classes, tokenized);
                 trainResultMessage.setText("Best ChiSquare: " + bayes.getHighestChiSquare());
-                //loadStage.close();
+                loadStage.close();
 
             }
         });

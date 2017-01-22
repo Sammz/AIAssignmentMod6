@@ -26,14 +26,15 @@ public class Tokenizer {
     public Map<Map<String, Integer>, String> tokenizeFolder(String option, File folder, List<String> classes) throws IllegalFileNameException, CouldNotStartTokenizingException {
 
         Map<Map<String, Integer>, String> docs = new HashMap<Map<String, Integer>, String>();
-        if (option.equals("train")) {
+        if (option.equals("train") || option.equals("test")) {
             if (folder.exists() && folder.isDirectory()) {
                 String fileClass;
                 for (File fileFolder : folder.listFiles()) {
                     if (fileFolder.exists() && fileFolder.isDirectory()) {
                         if (classes.contains(fileFolder.getName())) {
                             fileClass = fileFolder.getName();
-                        } else throw new IllegalFileNameException("One of the folders is not named as a class you specified.");
+                        } else
+                            throw new IllegalFileNameException("One of the folders is not named as a class you specified.");
                         for (File file : fileFolder.listFiles()) {
                             docs.put(tokenizeFile(file), fileClass);
                         }
@@ -42,12 +43,8 @@ public class Tokenizer {
                 return docs;
             } else
                 throw new CouldNotStartTokenizingException("Given file doesn't exist or is no folder.");
-        } else if(option.equals("test")){
-
-
-            return docs;
-
-        } else throw new CouldNotStartTokenizingException("Internal error");
+        } else
+            throw new CouldNotStartTokenizingException("Internal error");
     }
 
     // Tokenize a file
