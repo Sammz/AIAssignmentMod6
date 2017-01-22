@@ -111,6 +111,14 @@ public class Main extends Application {
             @Override
             public void handle(ActionEvent t) {
 
+                HBox l = new HBox();
+                Text loadText = new Text("Loading...");
+                l.getChildren().add(loadText);
+                Stage loadStage = new Stage();
+                Scene scene = new Scene(l, 250, 70);
+                loadStage.setScene(scene);
+                loadStage.show();
+
                 String option = "train";
                 File trainFolder = new File(trainFolderLocation.getText());
                 String[] classesArray = trainClasses.getText().split(" ");
@@ -123,13 +131,14 @@ public class Main extends Application {
                     tokenized = tokenizer.tokenizeFolder(option, trainFolder, classes);
                 } catch (IllegalFileNameException e) {
                     e.printStackTrace();
-                    errorMessage.setText("Error: " + e.getMessage());
+                    loadText.setText("Error: " + e.getMessage());
                 } catch (CouldNotStartTokenizingException e) {
                     e.printStackTrace();
-                    errorMessage.setText("Error: " + e.getMessage());
+                    loadText.setText("Error: " + e.getMessage());
                 }
                 bayes.train(classes, tokenized);
                 trainResultMessage.setText("Best ChiSquare: " + bayes.getHighestChiSquare());
+                //loadStage.close();
 
             }
         });
