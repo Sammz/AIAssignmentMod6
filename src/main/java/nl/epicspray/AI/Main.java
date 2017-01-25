@@ -5,10 +5,14 @@ import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
@@ -28,9 +32,9 @@ import java.util.Map;
  */
 public class Main extends Application {
 
-    final Bayes bayes = new Bayes();
-    final Tokenizer tokenizer = new Tokenizer();
-    final Windows windows= new Windows();
+    private Map<List<String>, Bayes> bayesList = new HashMap<List<String>, Bayes>();
+    private final Tokenizer tokenizer = new Tokenizer();
+    private final String error = "Error: ";
 
     public static void main(String[] args) {
         launch(args);
@@ -41,7 +45,7 @@ public class Main extends Application {
         primaryStage.setTitle("Classifier");
 
         HBox rootBox = new HBox();
-        Scene scene = new Scene(rootBox, 1100, 500);
+        Scene scene = new Scene(rootBox, 1300, 600);
         GridPane informationPane = new GridPane();
         GridPane trainPane = new GridPane();
         GridPane testPane = new GridPane();
@@ -69,8 +73,6 @@ public class Main extends Application {
                 "\nSupports infinite classes.\nSeparate classes with spaces.\nTest folder:\n");
         informationPane.add(info, 0, 1, 1, 1);
     }
-
-
 
     private void setTrainPane(GridPane trainPane) {
         trainPane.setAlignment(Pos.TOP_CENTER);
@@ -102,40 +104,58 @@ public class Main extends Application {
         trainPane.add(trainhbox, 1, 4);
 
         final Text trainResultMessage = new Text();
-        trainPane.add(trainResultMessage, 1, 6);
+        trainPane.add(trainResultMessage, 0, 6,2,1);
 
-        final Text errorMessage = new Text();
-        trainPane.add(errorMessage, 1, 8);
+        final Text trainErrorMessage = new Text();
+        trainPane.add(trainErrorMessage, 0, 8,2,1);
 
         trainButton.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
             public void handle(ActionEvent t) {
 
-                Stage loadStage = windows.makeLoadStage();
-                loadStage.show();
-
-                String option = "train";
+                String trainOption = "train";
+                trainErrorMessage.setText("");
+                trainResultMessage.setText("");
                 File trainFolder = new File(trainFolderLocation.getText());
-                String[] classesArray = trainClasses.getText().split(" ");
-                List<String> classes = new ArrayList<String>();
-                for(String clas : classesArray){
-                    classes.add(clas);
-                }
-                Map<Map<String, Integer>, String> tokenized = new HashMap<Map<String, Integer>, String>();
-                try {
-                    tokenized = tokenizer.tokenizeFolder(option, trainFolder, classes);
-                } catch (IllegalFileNameException e) {
-                    e.printStackTrace();
-                    errorMessage.setText("Error: " + e.getMessage());
-                } catch (CouldNotStartTokenizingException e) {
-                    e.printStackTrace();
-                    errorMessage.setText("Error: " + e.getMessage());
-                }
-                bayes.train(classes, tokenized);
-                trainResultMessage.setText("Best ChiSquare: " + bayes.getHighestChiSquare());
-                loadStage.close();
+                if (!trainClasses.getText().equals("") &&!trainClasses.getText().equals(" ") && trainClasses.getText().contains(" ") && trainFolder.exists() && trainFolder.isDirectory()) {
+                    Stage loadStage = makeLoadStage();
+                    loadStage.show();
 
+                    String[] classesArray = trainClasses.getText().split(" ");
+                    List<String> classes = new ArrayList<String>();
+                    for (String clas : classesArray) {
+                        classes.add(clas);
+                    }
+
+                    if(!bayesList.keySet().contains(classes)){
+                        Bayes bayes = new Bayes();
+                        bayesList.put(classes, bayes);
+                    }
+
+                    try {
+
+                        Bayes b =bayesList.get(classes);
+                        Map<Map<String, Integer>, String> tokenized = tokenizer.tokenizeFolder(trainOption, trainFolder, classes);
+                        b.train(classes, tokenized);
+                        trainResultMessage.setText("Trained succesfully!\nBest ChiSquare: " + b.getHighestChiSquare());
+
+                        //TODO show more info maybe
+
+                    } catch (IllegalFileNameException e) {
+                        e.printStackTrace();
+                        trainErrorMessage.setText(error + e.getMessage());
+                    } catch (CouldNotStartTokenizingException e) {
+                        e.printStackTrace();
+                        trainErrorMessage.setText(error + e.getMessage());
+                    }
+
+
+                    loadStage.close();
+
+                } else {
+                    trainErrorMessage.setText(error + "Location and or classes have wrong input");
+                }
             }
         });
     }
@@ -169,18 +189,107 @@ public class Main extends Application {
         testPane.add(testhbox, 1, 3);
 
         final Text testResultMessage = new Text();
-        testPane.add(testResultMessage, 1, 6);
+        testPane.add(testResultMessage, 0, 6,2,1);
+
+        final Text testErrorMessage = new Text();
+        testPane.add(testErrorMessage, 0,8,2,1);
 
         testButton.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
             public void handle(ActionEvent t) {
 
+                String testOption = "train";
 
-                testResultMessage.setText("Best ChiSquare: ");
+                testErrorMessage.setText("");
+                testResultMessage.setText("");
+                File testFolder = new File(testFolderLocation.getText());
+                if (!testClasses.getText().equals("") &&!testClasses.getText().equals(" ") && testClasses.getText().contains(" ") && testFolder.exists() && testFolder.isDirectory()) {
+
+                    String[] classesArray = testClasses.getText().split(" ");
+                    List<String> classes = new ArrayList<String>();
+
+                    for (String clas : classesArray) {
+                        classes.add(clas);
+                    }
+                    if (bayesList.keySet().contains(classes)) {
+
+                        Stage loadStage = makeLoadStage();
+                        loadStage.show();
+
+                        int correct = 0;
+                        int incorrect = 0;
+
+                        try {
+                            Bayes b = bayesList.get(classes);
+                            Map<Map<String, Integer>, String> tokenized = tokenizer.tokenizeFolder(testOption, testFolder, classes);
+                            for(Map<String, Integer> doc : tokenized.keySet()){
+                                String docClass = tokenized.get(doc);
+                                String predictedDocClass = b.classify(doc);
+                                //System.out.println("class: " + docClass + "     predicted class: " + predictedDocClass);
+                                if(docClass.equals(predictedDocClass)){
+                                    correct ++;
+                                } else {
+                                    incorrect ++;
+                                }
+
+                            }
+
+                            testResultMessage.setText("Correct: " + correct + "\nIncorrect: " + incorrect);
+
+                            //TODO show more information
+
+                        } catch (IllegalFileNameException e) {
+                            e.printStackTrace();
+                            testErrorMessage.setText(error + e.getMessage());
+                        } catch (CouldNotStartTokenizingException e) {
+                            e.printStackTrace();
+                            testErrorMessage.setText(error + e.getMessage());
+                        }
+
+                        loadStage.close();
+
+                    } else {
+                        testErrorMessage.setText(error +"Not all classes have been trained.");
+                    }
+                } else {
+                    testErrorMessage.setText(error + "Location and or classes have wrong input");
+                }
+
 
             }
         });
+    }
+
+    public Stage makeLoadStage(){
+
+        Group root = new Group();
+        Scene scene = new Scene(root, 600, 500, Color.WHITE);
+
+        GridPane gridpane = new GridPane();
+        gridpane.setPadding(new Insets(5));
+        gridpane.setHgap(10);
+        gridpane.setVgap(10);
+
+        ImageView imv = new ImageView();
+
+        Image i = new Image(Main.class.getResourceAsStream("/images/spin.gif"));
+        //TODO vaag image werkt niet
+        imv.setImage(i);
+
+        HBox pictureRegion = new HBox();
+
+        pictureRegion.getChildren().add(imv);
+        gridpane.add(pictureRegion, 1, 1);
+
+
+        root.getChildren().add(gridpane);
+
+        Stage loadStage = new Stage();
+        loadStage.setTitle("Loading...");
+
+        loadStage.setScene(scene);
+        return loadStage;
     }
 
 

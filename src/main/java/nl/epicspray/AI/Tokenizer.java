@@ -26,33 +26,44 @@ public class Tokenizer {
     public Map<Map<String, Integer>, String> tokenizeFolder(String option, File folder, List<String> classes) throws IllegalFileNameException, CouldNotStartTokenizingException {
 
         Map<Map<String, Integer>, String> docs = new HashMap<Map<String, Integer>, String>();
-        if (option.equals("train") || option.equals("test")) {
             if (folder.exists() && folder.isDirectory()) {
-                String fileClass;
-                for (File fileFolder : folder.listFiles()) {
-                    if (fileFolder.exists() && fileFolder.isDirectory()) {
-                        if (classes.contains(fileFolder.getName())) {
-                            fileClass = fileFolder.getName();
-                        } else
-                            throw new IllegalFileNameException("One of the folders is not named as a class you specified.");
-                        for (File file : fileFolder.listFiles()) {
-                            docs.put(tokenizeFile(file), fileClass);
+
+                if(classes.size() == folder.listFiles().length) {
+
+                    for (File fileFolder : folder.listFiles()) {
+                        if (fileFolder.exists() && fileFolder.isDirectory()) {
+
+                            String fileClass;
+                            if (classes.contains(fileFolder.getName())) {
+                                fileClass = fileFolder.getName();
+
+                            } else {
+                                throw new IllegalFileNameException("One of the folders is not named as a specified class.");
+                            }
+                            for (File file : fileFolder.listFiles()) {
+                                docs.put(tokenizeFile(file), fileClass);
+                            }
                         }
                     }
+                    return docs;
+                } else {
+                    if(classes.size() > folder.listFiles().length) {
+                        throw new CouldNotStartTokenizingException("Too many classes specified.");
+                    } else {
+                        throw new CouldNotStartTokenizingException("Not enough classes specified.");
+                    }
                 }
-                return docs;
-            } else
+            } else {
                 throw new CouldNotStartTokenizingException("Given file doesn't exist or is no folder.");
-        } else
-            throw new CouldNotStartTokenizingException("Internal error");
+            }
     }
 
     // Tokenize a file
     private Map<String, Integer> tokenizeFile(File file) {
         Map<String, Integer> fileMap = new HashMap<String, Integer>();
-        Scanner in = null;
+
         try {
-            in = new Scanner(file);
+            Scanner in = new Scanner(file);
             while (in.hasNext()) {
                 String s = cleanString(in.next());
                 if (!isStopWord(s) && !s.equals("")) {
