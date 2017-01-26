@@ -38,7 +38,7 @@ public class Tokenizer {
                                 fileClass = fileFolder.getName();
 
                             } else {
-                                throw new IllegalFileNameException("One of the folders is not named as a specified class.");
+                                throw new IllegalFileNameException("The folder: "+ fileFolder.getName() + " is not named as a specified class.");
                             }
                             for (File file : fileFolder.listFiles()) {
                                 docs.put(tokenizeFile(file), fileClass);

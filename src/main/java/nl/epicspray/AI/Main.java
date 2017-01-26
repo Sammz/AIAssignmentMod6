@@ -16,6 +16,7 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import nl.epicspray.AI.exceptions.CouldNotStartTokenizingException;
 import nl.epicspray.AI.exceptions.IllegalFileNameException;
@@ -54,10 +55,6 @@ public class Main extends Application {
         setTestPane(testPane);
         primaryStage.setScene(scene);
         primaryStage.show();
-        makeLoadStage().show();
-
-
-
     }
 
 
