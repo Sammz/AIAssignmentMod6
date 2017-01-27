@@ -3,7 +3,9 @@ package nl.epicspray.AI;
 import nl.epicspray.AI.util.SystemController;
 import sun.plugin2.gluegen.runtime.CPU;
 
+import java.net.InetAddress;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Created by Gebruiker on 14-1-2017.
@@ -12,15 +14,15 @@ public class Bayes {
 
     private Set<String> V = new HashSet<String>();
     private Map<String, Double> CPrior;
-    private List<String> C;
-    private Map<Map<String, Integer>, String> D;
+    private List<String> C = new CopyOnWriteArrayList<String>();
+    private Map<Map<String, Integer>, String> D = new HashMap<Map<String, Integer>, String>();
     private Map<String, Map<String, Double>> chanceOnWordGivenClass;
     private Map<String, Map<String, Map<Boolean, Integer>>> chiSquareMap;
     private int K = 1;
 
     public void train(List<String> classes, Map<Map<String, Integer>, String> docs){
         C = classes;
-        D = docs;
+        D.putAll(docs);
         for(Map<String, Integer> map : D.keySet()){
             V.addAll(map.keySet());
         }
@@ -38,6 +40,7 @@ public class Bayes {
         }
 
         //Map every word to a class instead of only a document
+        SystemController.getLogger().debug("Counting documents per class and words per class");
         int totalDocs = 0;
         for(String s : C){
             for(Map<String, Integer> map : D.keySet()){
@@ -56,13 +59,15 @@ public class Bayes {
                 }
             }
         }
+        SystemController.getLogger().debug("Calculating Prior chances");
         CPrior = new HashMap<String, Double>();
         for(String c : C){
             CPrior.put(c, ((double) totalDocsPerClass.get(c) / totalDocs));
-            SystemController.getLogger().debug("Calculated prior chance for class: " + c + " = " + CPrior.get(c));
+            //SystemController.getLogger().debug("Calculated prior chance for class: " + c + " = " + CPrior.get(c));
         }
 
         //Calculate total amount of words
+        SystemController.getLogger().debug("Calculating total words per class");
         for(String c : C){
             for(String s : countWordsPerClass.get(c).keySet()){
                 //SystemController.getLogger().debug("Final words: " + s + " in class: " + c + " = " + countWordsPerClass.get(c).get(s));
@@ -76,6 +81,8 @@ public class Bayes {
                 }
             }
         }
+
+        SystemController.getLogger().debug("Calculating Chi Square for every word in the vocabulary");
         chiSquareMap = new HashMap<String, Map<String, Map<Boolean, Integer>>>();
         for(String c : C){
             chiSquareMap.put(c, new HashMap<String, Map<Boolean, Integer>>());
@@ -105,6 +112,7 @@ public class Bayes {
         }
 
         //calculate actual prior chances
+        SystemController.getLogger().debug("Calculating changes per word per class");
         for(String c : C){
             for(String s : countWordsPerClass.get(c).keySet()){
                 double val = ((double)countWordsPerClass.get(c).get(s) + K) / (totalWordsPerClass.get(c) + (K * V.size()));
@@ -113,6 +121,8 @@ public class Bayes {
                 chanceOnWordGivenClass.get(c).put(s, val);
             }
         }
+
+        SystemController.getLogger().debug("Finished training");
     }
 
     public String classify(Map<String, Integer> doc){
@@ -138,6 +148,93 @@ public class Bayes {
             }
         }
         return bestClass;
+    }
+
+    public Double getAccuracy (Map<Map<String, Integer>, String> docs){
+        int correct = 0;
+        int incorrect = 0;
+        Map<String, Map<String, Integer>> matrix = getConfusionMatrix(docs);
+        for(String c : matrix.keySet()){
+            for(String c1 : matrix.get(c).keySet()){
+                if(c1.equals(c)){
+                    correct += matrix.get(c).get(c1);
+                } else {
+                    incorrect += matrix.get(c).get(c1);
+                }
+            }
+        }
+        return (double) correct / (double) (incorrect+correct);
+    }
+
+    public Map<String, Double> getPrecision(Map<Map<String, Integer>, String> docs){
+        Map<String, Map<String, Integer>> matrix = getConfusionMatrix(docs);
+        Map<String, Double> res = new HashMap<String, Double>();
+        for(String c : C){
+            int correct = 0;
+            int yal = 0;
+            int incorrect = 0;
+            for(String c1 : C){
+                if(c.equals(c1)){
+                    correct += matrix.get(c1).get(c);
+                } else {
+                    incorrect += matrix.get(c1).get(c);
+                }
+            }
+            res.put(c, (double) correct / (correct + incorrect));
+            SystemController.getLogger().debug("Precision for class: " + c + " : " + (double) correct / (correct + incorrect));
+        }
+        return res;
+    }
+
+    public Map<String, Double> getRecall(Map<Map<String, Integer>, String> docs){
+        Map<String, Map<String, Integer>> matrix = getConfusionMatrix(docs);
+        Map<String, Double> res = new HashMap<String, Double>();
+        for(String c : C){
+            int correct = 0;
+            int incorrect = 0;
+            for(String c1 : C){
+                if(c.equals(c1)){
+                    correct += matrix.get(c).get(c1);
+                } else {
+                    incorrect += matrix.get(c).get(c1);
+                }
+            }
+            res.put(c, (double) correct / (correct + incorrect));
+            SystemController.getLogger().debug("Recall for class: " + c + " : " + (double) correct / (correct + incorrect));
+        }
+        return res;
+    }
+
+    public Map<String, Map<String, Integer>> getConfusionMatrix(Map<Map<String, Integer>, String> docs){
+        Map<String, Map<String, Integer>> matrix = new HashMap<String, Map<String, Integer>>();
+        for(String c : C){
+            Map<String, Integer> inner = new HashMap<String, Integer>();
+            for(String c1 : C){
+                inner.put(c1, 0);
+            }
+            matrix.put(c, inner);
+        }
+
+        for(Map<String, Integer> doc : docs.keySet()){
+            String actual = docs.get(doc);
+            String pred = classify(doc);
+            Map<String, Integer> inner = matrix.remove(actual);
+            inner.put(pred, inner.remove(pred) + 1);
+            matrix.put(actual, inner);
+        }
+        System.out.print("  | ");
+        for(String c : C){
+            System.out.print(c + " | ");
+        }
+        System.out.println(" ");
+        for(String c : C){
+            System.out.print(c + " | ");
+            for(String c1 : C){
+                System.out.print(matrix.get(c).get(c1) + " | ");
+            }
+            System.out.println(" ");
+        }
+        return matrix;
     }
 
     public double computeChiSquare(String word){

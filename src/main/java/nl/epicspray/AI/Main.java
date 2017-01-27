@@ -20,6 +20,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import nl.epicspray.AI.exceptions.CouldNotStartTokenizingException;
 import nl.epicspray.AI.exceptions.IllegalFileNameException;
+import nl.epicspray.AI.util.SystemController;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -246,6 +247,9 @@ public class Main extends Application {
                 try {
                     Bayes b = bayesList.get(classes);
                     Map<Map<String, Integer>, String> tokenized = tokenizer.tokenizeFolder(testOption, testFolder, classes);
+                    SystemController.getLogger().debug("Accuary: " + b.getAccuracy(tokenized));
+                    b.getRecall(tokenized);
+                    b.getPrecision(tokenized);
                     for(Map<String, Integer> doc : tokenized.keySet()){
                         String docClass = tokenized.get(doc);
                         String predictedDocClass = b.classify(doc);
