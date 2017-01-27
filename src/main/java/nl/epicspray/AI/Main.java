@@ -245,15 +245,15 @@ public class Main extends Application {
                 try {
                     Bayes b = bayesList.get(classes);
                     Map<Map<String, Integer>, String> tokenized = tokenizer.tokenizeFolder(testOption, testFolder, classes);
-                    double accuracy = b.getAccuracy(tokenized);
+                    double accuracy = b.getAccuracy(tokenized, false);
 
-                    Map<String, Map<String, Integer>> confusionMatrix = b.getConfusionMatrix(tokenized);
+                    Map<String, Map<String, Integer>> confusionMatrix = b.getConfusionMatrix(tokenized, false);
                     String matrix = matrixToString(classes, confusionMatrix);
 
-                    Map<String, Double> recall = b.getRecall(tokenized);
+                    Map<String, Double> recall = b.getRecall(tokenized, false);
                     String recallString = easyStatsToString(recall);
 
-                    Map<String, Double> precision = b.getPrecision(tokenized);
+                    Map<String, Double> precision = b.getPrecision(tokenized, false);
                     String precisionString = easyStatsToString(precision);
 
 

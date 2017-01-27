@@ -190,17 +190,16 @@ public class Bayes {
         return bestClass;
     }
 
-    public String classifyWithLearning(Map<Map<String, Integer>, String> docs){
-        for(Map<String, Integer> doc : docs.keySet()){
-
-        }
-        return null;
+    public String classifyWithLearning(Map<String, Integer> doc, String className){
+        String pred = classify(doc);
+        addToTrainingData(doc, className);
+        return pred;
     }
 
-    public Double getAccuracy (Map<Map<String, Integer>, String> docs){
+    public Double getAccuracy (Map<Map<String, Integer>, String> docs, boolean learning){
         int correct = 0;
         int incorrect = 0;
-        Map<String, Map<String, Integer>> matrix = getConfusionMatrix(docs);
+        Map<String, Map<String, Integer>> matrix = getConfusionMatrix(docs, learning);
         for(String c : matrix.keySet()){
             for(String c1 : matrix.get(c).keySet()){
                 if(c1.equals(c)){
@@ -239,8 +238,8 @@ public class Bayes {
         return  classify(doc);
     }
 
-    public Map<String, Double> getPrecision(Map<Map<String, Integer>, String> docs){
-        Map<String, Map<String, Integer>> matrix = getConfusionMatrix(docs);
+    public Map<String, Double> getPrecision(Map<Map<String, Integer>, String> docs, boolean learning){
+        Map<String, Map<String, Integer>> matrix = getConfusionMatrix(docs, learning);
         Map<String, Double> res = new HashMap<String, Double>();
         for(String c : C){
             int correct = 0;
@@ -259,8 +258,8 @@ public class Bayes {
         return res;
     }
 
-    public Map<String, Double> getRecall(Map<Map<String, Integer>, String> docs){
-        Map<String, Map<String, Integer>> matrix = getConfusionMatrix(docs);
+    public Map<String, Double> getRecall(Map<Map<String, Integer>, String> docs, boolean learning){
+        Map<String, Map<String, Integer>> matrix = getConfusionMatrix(docs, learning);
         Map<String, Double> res = new HashMap<String, Double>();
         for(String c : C){
             int correct = 0;
@@ -278,7 +277,7 @@ public class Bayes {
         return res;
     }
 
-    public Map<String, Map<String, Integer>> getConfusionMatrix(Map<Map<String, Integer>, String> docs){
+    public Map<String, Map<String, Integer>> getConfusionMatrix(Map<Map<String, Integer>, String> docs, boolean withLearn){
         Map<String, Map<String, Integer>> matrix = new HashMap<String, Map<String, Integer>>();
         for(String c : C){
             Map<String, Integer> inner = new HashMap<String, Integer>();
@@ -290,7 +289,13 @@ public class Bayes {
 
         for(Map<String, Integer> doc : docs.keySet()){
             String actual = docs.get(doc);
-            String pred = classify(doc);
+            String pred;
+            if(!withLearn){
+                pred = classify(doc);
+            } else {
+                pred = classifyWithLearning(doc, docs.get(doc));
+            }
+
             Map<String, Integer> inner = matrix.remove(actual);
             inner.put(pred, inner.remove(pred) + 1);
             matrix.put(actual, inner);
