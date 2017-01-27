@@ -41,6 +41,7 @@ public class Main extends Application {
 
     public static void main(String[] args) {
         launch(args);
+
     }
 
     @Override
@@ -60,7 +61,6 @@ public class Main extends Application {
     }
 
 
-
     private void setInformationBox(GridPane informationPane) {
         informationPane.setAlignment(Pos.TOP_LEFT);
         informationPane.setHgap(10);
@@ -76,10 +76,11 @@ public class Main extends Application {
         informationPane.add(info, 0, 1, 1, 4);
 
         Text trainedClassesHeader = new Text("Sets of classes trained:");
-        trainedClassesHeader.setFont(Font.font("Arial", FontWeight.NORMAL, 20));;
-        informationPane.add(trainedClassesHeader,0,6);
+        trainedClassesHeader.setFont(Font.font("Arial", FontWeight.NORMAL, 20));
+        ;
+        informationPane.add(trainedClassesHeader, 0, 6);
         trainedClasses = new Text("No training has been done yet.");
-        informationPane.add(trainedClasses,0,7);
+        informationPane.add(trainedClasses, 0, 7);
     }
 
     private void setTrainPane(GridPane trainPane) {
@@ -112,11 +113,10 @@ public class Main extends Application {
         trainPane.add(trainhbox, 1, 3);
 
         final Text trainErrorMessage = new Text();
-        trainPane.add(trainErrorMessage, 0, 4,2,1);
+        trainPane.add(trainErrorMessage, 0, 4, 2, 1);
 
         final Text trainResultMessage = new Text();
-        trainPane.add(trainResultMessage, 0, 5,2,1);
-
+        trainPane.add(trainResultMessage, 0, 5, 2, 1);
 
 
         trainButton.setOnAction(new EventHandler<ActionEvent>() {
@@ -141,13 +141,13 @@ public class Main extends Application {
             for (File f : trainFolder.listFiles()) {
                 classes.add(f.getName());
             }
-            if(!bayesList.keySet().contains(classes)){
+            if (!bayesList.keySet().contains(classes)) {
                 Bayes bayes = new Bayes();
                 bayesList.put(classes, bayes);
             }
             setTrainedClassesText();
             try {
-                Bayes b =bayesList.get(classes);
+                Bayes b = bayesList.get(classes);
                 Map<Map<String, Integer>, String> tokenized = tokenizer.tokenizeFolder(trainOption, trainFolder, classes);
                 b.train(classes, tokenized);
                 trainResultMessage.setText("Trained succesfully!\nBest ChiSquare: " + b.getHighestChiSquare());
@@ -167,8 +167,8 @@ public class Main extends Application {
 
     private void setTrainedClassesText() {
         StringBuilder sb = new StringBuilder();
-        for(List<String> classesSet : bayesList.keySet()){
-            for (String s : classesSet){
+        for (List<String> classesSet : bayesList.keySet()) {
+            for (String s : classesSet) {
                 sb.append(s);
                 sb.append(" ");
             }
@@ -206,11 +206,11 @@ public class Main extends Application {
         testPane.add(testhbox, 1, 3);
 
         final Text testErrorMessage = new Text();
-        testPane.add(testErrorMessage, 0,4,2,1);
+        testPane.add(testErrorMessage, 0, 4, 2, 1);
 
         final Text testResultMessage = new Text();
-        testPane.add(testResultMessage, 0, 5,2,1);
-
+        testResultMessage.setFont(Font.font("Monospace", FontWeight.NORMAL, 12));
+        testPane.add(testResultMessage, 0, 5, 2, 1);
 
 
         testButton.setOnAction(new EventHandler<ActionEvent>() {
@@ -242,27 +242,22 @@ public class Main extends Application {
                 Stage loadStage = makeLoadStage();
                 loadStage.show();
 
-                int correct = 0;
-                int incorrect = 0;
                 try {
                     Bayes b = bayesList.get(classes);
                     Map<Map<String, Integer>, String> tokenized = tokenizer.tokenizeFolder(testOption, testFolder, classes);
-                    SystemController.getLogger().debug("Accuary: " + b.getAccuracy(tokenized));
-                    b.getRecall(tokenized);
-                    b.getPrecision(tokenized);
-                    b.getBestChiSquare(10);
-                    for(Map<String, Integer> doc : tokenized.keySet()){
-                        String docClass = tokenized.get(doc);
-                        String predictedDocClass = b.classify(doc);
-                        //System.out.println("class: " + docClass + "     predicted class: " + predictedDocClass);
-                        if(docClass.equals(predictedDocClass)){
-                            correct ++;
-                        } else {
-                            incorrect ++;
-                        }
-                    }
-                    testResultMessage.setText("Correct: " + correct + "\nIncorrect: " + incorrect);
-                    //TODO show more information
+                    double accuracy = b.getAccuracy(tokenized);
+
+                    Map<String, Map<String, Integer>> confusionMatrix = b.getConfusionMatrix(tokenized);
+                    String matrix = matrixToString(classes, confusionMatrix);
+
+                    Map<String, Double> recall = b.getRecall(tokenized);
+                    String recallString = easyStatsToString(recall);
+
+                    Map<String, Double> precision = b.getPrecision(tokenized);
+                    String precisionString = easyStatsToString(precision);
+
+
+                    testResultMessage.setText("Accuracy: " + accuracy + "\n\n" + matrix + "\n" + "Recall:\n" + recallString + "\n" + "Precision:\n" + precisionString);
                 } catch (IllegalFileNameException e) {
                     e.printStackTrace();
                     testErrorMessage.setText(error + e.getMessage());
@@ -274,14 +269,56 @@ public class Main extends Application {
                 loadStage.close();
 
             } else {
-                testErrorMessage.setText(error +"Not all classes have been trained.");
+                testErrorMessage.setText(error + "Not all classes have been trained.");
             }
         } else {
             testErrorMessage.setText(error + "Location has wrong input");
         }
     }
 
-    private Stage makeLoadStage(){
+    private String easyStatsToString(Map<String, Double> stats) {
+        String recallString = "";
+        for (String classRecall : stats.keySet()) {
+            recallString += classRecall + ": " + stats.get(classRecall).toString() + "\n";
+        }
+        return recallString;
+    }
+
+    private String matrixToString(List<String> classes, Map<String, Map<String, Integer>> confusionMatrix) {
+        String longestClass = "Class:";
+        for (String matrixClass : confusionMatrix.keySet()) {
+            if (matrixClass.length() > longestClass.length()) {
+                longestClass = matrixClass;
+            }
+        }
+        String matrix = "Class:";
+        matrix = center(matrix, 8);
+        if(longestClass.length() > matrix.length()) {
+            matrix = center(matrix, 8);
+        }
+        matrix += " | ";
+        for (String c : classes) {
+            if(longestClass.length() > c.length()) {
+                c = center(c, 8);
+            }
+            matrix += c + " | ";
+        }
+        matrix += "\n";
+        for (String c : classes) {
+            matrix += center(c, 8) + " | ";
+            for (String c1 : classes) {
+                String number = confusionMatrix.get(c).get(c1).toString();
+                if(longestClass.length() > number.length()) {
+                    number = center(number, 8);
+                }
+                matrix += number + " | ";
+            }
+            matrix += "\n";
+        }
+        return matrix;
+    }
+
+    private Stage makeLoadStage() {
         Image image = new Image("http://www.sgpj.nl/uploads/bestaand/decoratie/3809962_trump_jpegeff60af78d1ded9d62fcff68f84370ee.jpg");
         ImageView imageView = new ImageView(image);
         Stage loadStage = new Stage();
@@ -289,6 +326,33 @@ public class Main extends Application {
         loadStage.sizeToScene();
         loadStage.setTitle("Loading...      Wait till this disappears.");
         return loadStage;
+    }
+
+    public static String padRight(String s, int n) {
+        return String.format("%1$-" + n + "s", s);
+    }
+
+    public static String padLeft(String s, int n) {
+        return String.format("%1$" + n + "s", s);
+    }
+
+    public static String center(String s, int size) {
+        return center(s, size, ' ');
+    }
+
+    public static String center(String s, int size, char pad) {
+        if (s == null || size <= s.length())
+            return s;
+
+        StringBuilder sb = new StringBuilder(size);
+        for (int i = 0; i < (size - s.length()) / 2; i++) {
+            sb.append(pad);
+        }
+        sb.append(s);
+        while (sb.length() < size) {
+            sb.append(pad);
+        }
+        return sb.toString();
     }
 
 
