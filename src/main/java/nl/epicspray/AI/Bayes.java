@@ -20,7 +20,11 @@ public class Bayes {
     private Map<String, Map<String, Double>> chanceOnWordGivenClass;
     private Map<String, Map<String, Map<Boolean, Integer>>> chiSquareMap;
     private List<ChiObject> chiSquares;
-    private int K = 1;
+    private Map<String, Integer> totalDocsPerClass = new HashMap<String, Integer>();
+    private Map<String, Map<String, Integer>> countWordsPerClass = new HashMap<String, Map<String, Integer>>();
+    private Map<String, Integer> totalWordsPerClass = new HashMap<String, Integer>();
+    private int K = 3;
+    private int totalDocs;
 
     public void train(List<String> classes, Map<Map<String, Integer>, String> docs){
         C = classes;
@@ -28,10 +32,10 @@ public class Bayes {
         for(Map<String, Integer> map : D.keySet()){
             V.addAll(map.keySet());
         }
-        Map<String, Integer> totalDocsPerClass = new HashMap<String, Integer>();
-        Map<String, Map<String, Integer>> countWordsPerClass = new HashMap<String, Map<String, Integer>>();
+        totalDocsPerClass = new HashMap<String, Integer>();
+        countWordsPerClass = new HashMap<String, Map<String, Integer>>();
         chanceOnWordGivenClass = new HashMap<String, Map<String, Double>>();
-        Map<String, Integer> totalWordsPerClass = new HashMap<String, Integer>();
+        totalWordsPerClass = new HashMap<String, Integer>();
         //Total classes
         for(String c : C){
             totalDocsPerClass.put(c, 0);
@@ -43,68 +47,63 @@ public class Bayes {
 
         //Map every word to a class instead of only a document
         SystemController.getLogger().debug("Counting documents per class and words per class");
-        int totalDocs = 0;
+        totalDocs = 0;
         for(String s : C){
-            for(Map<String, Integer> map : D.keySet()){
-                if(s.equals(D.get(map))){
-                    totalDocs++;
-                    totalDocsPerClass.put(s, totalDocsPerClass.remove(s) + 1);
-                    //SystemController.getLogger().debug("Found Doc with class: " + s + ", total : " + totalDocsPerClass.get(s));
-                    for(String c : map.keySet()){
-                        if(countWordsPerClass.get(s).containsKey(c)){
-                            countWordsPerClass.get(s).put(c, countWordsPerClass.get(s).remove(c) + map.get(c));
-                        } else {
-                            countWordsPerClass.get(s).put(c, map.get(c));
-                        }
-                        //SystemController.getLogger().debug("Current words: " + c + " in class: " + s + " = " + countWordsPerClass.get(s).get(c));
+            totalDocsPerClass.put(s, (int) D.keySet().parallelStream()
+                    .filter(t -> D.get(t).equals(s))
+                    .count());
+
+            for(String v : V){
+                countWordsPerClass.get(s).put(v, 0);
+            }
+            D.keySet().parallelStream()
+                    .filter(map -> s.equals(D.get(map)))
+                    .forEach(map -> map.keySet().forEach(c -> countWordsPerClass.get(s).put(c, countWordsPerClass.get(s).get(c) + map.get(c))));
+        }
+
+        for (String s : totalDocsPerClass.keySet()){
+            totalDocs += totalDocsPerClass.get(s);
+        }
+
+        calculatePriorChances();
+        calculateTotalWords();
+        calculateChiSquare();
+        calculateChancesPerWordPerClass();
+
+        SystemController.getLogger().debug("Finished training");
+    }
+
+    public void addToTrainingData(Map<String, Integer> doc, String className){
+        for(String c : C){
+            if(c.equals(className)){
+                totalDocs++;
+                totalDocsPerClass.put(c, totalDocsPerClass.remove(c) + 1);
+                for (String s : doc.keySet()) {
+                    if (countWordsPerClass.get(s).containsKey(c)) {
+                        countWordsPerClass.get(s).put(c, countWordsPerClass.get(s).remove(c) + doc.get(c));
+                    } else {
+                        countWordsPerClass.get(s).put(c, doc.get(c));
                     }
                 }
             }
         }
+
+        calculatePriorChances();
+        calculateTotalWords();
+        calculateChiSquare();
+        calculateChancesPerWordPerClass();
+    }
+
+    public void calculatePriorChances(){
         SystemController.getLogger().debug("Calculating Prior chances");
         CPrior = new HashMap<String, Double>();
         for(String c : C){
             CPrior.put(c, ((double) totalDocsPerClass.get(c) / totalDocs));
             //SystemController.getLogger().debug("Calculated prior chance for class: " + c + " = " + CPrior.get(c));
         }
+    }
 
-        //Calculate total amount of words
-        SystemController.getLogger().debug("Calculating total words per class");
-        for(String c : C){
-            for(String s : countWordsPerClass.get(c).keySet()){
-                //SystemController.getLogger().debug("Final words: " + s + " in class: " + c + " = " + countWordsPerClass.get(c).get(s));
-                totalWordsPerClass.put(c, totalWordsPerClass.get(c) + countWordsPerClass.get(c).get(s));
-            }
-        }
-        for(String s : V){
-            for(String c : C){
-                if(!countWordsPerClass.get(c).containsKey(s)){
-                    countWordsPerClass.get(c).put(s, 0);
-                }
-            }
-        }
-
-        SystemController.getLogger().debug("Calculating Chi Square for every word in the vocabulary");
-        chiSquareMap = new HashMap<String, Map<String, Map<Boolean, Integer>>>();
-        for(String c : C){
-            chiSquareMap.put(c, new HashMap<String, Map<Boolean, Integer>>());
-            for(String v : V){
-                chiSquareMap.get(c).put(v, new HashMap<Boolean, Integer>());
-                chiSquareMap.get(c).get(v).put(true, 0);
-            }
-            for(Map<String, Integer> map : D.keySet()){
-                if(c.equals(D.get(map))){
-                    for(String v : map.keySet()){
-                        chiSquareMap.get(c).get(v).put(true, chiSquareMap.get(c).get(v).get(true) + 1);
-                    }
-                }
-            }
-            for(String v : V){
-                chiSquareMap.get(c).get(v).put(false, totalDocs - chiSquareMap.get(c).get(v).get(true));
-            }
-        }
-
-        //calculate actual prior chances
+    public void calculateChancesPerWordPerClass(){
         SystemController.getLogger().debug("Calculating changes per word per class");
         for(String c : C){
             for(String s : countWordsPerClass.get(c).keySet()){
@@ -114,16 +113,56 @@ public class Bayes {
                 chanceOnWordGivenClass.get(c).put(s, val);
             }
         }
+    }
+
+    public void calculateTotalWords(){
+        SystemController.getLogger().debug("Calculating total words per class");
+        for(String c : C){
+            countWordsPerClass.get(c).keySet().parallelStream().forEach(s -> totalWordsPerClass.put(c, totalWordsPerClass.get(c) + countWordsPerClass.get(c).get(s)));
+        }
+        for(String s : V){
+            for(String c : C){
+                if(!countWordsPerClass.get(c).containsKey(s)){
+                    countWordsPerClass.get(c).put(s, 0);
+                }
+            }
+        }
+    }
+
+    public void calculateChiSquare(){
+        SystemController.getLogger().debug("Calculating Chi Square for every word in the vocabulary");
+        chiSquareMap = new ConcurrentHashMap<>();
+        for(String c : C){
+            chiSquareMap.put(c, new ConcurrentHashMap<>());
+            V.stream().forEach(v -> {
+                        Map<Boolean, Integer> h = new ConcurrentHashMap<>();
+                        h.put(true, 0);
+                        chiSquareMap.get(c).put(v, h);
+                    }
+                );
+
+//            for(Map<String, Integer> map : D.keySet()){
+//                if(c.equals(D.get(map))){
+//                    for(String v : map.keySet()){
+//                        chiSquareMap.get(c).get(v).put(true, chiSquareMap.get(c).get(v).get(true) + 1);
+//                    }
+//                }
+//            }
+
+            D.keySet().parallelStream()
+                    .filter(map -> c.equals(D.get(map)))
+                    .forEach(map -> map.keySet().forEach(v -> chiSquareMap.get(c).get(v).put(true, chiSquareMap.get(c).get(v).get(true) + 1)));
+
+            V.parallelStream().forEach(v -> chiSquareMap.get(c).get(v).put(false, totalDocs - chiSquareMap.get(c).get(v).get(true)));
+        }
 
         SystemController.getLogger().debug("Composing best chisquare list");
-        chiSquares = new ArrayList<ChiObject>();
+        chiSquares = new ArrayList<>();
         for(String v : V){
             chiSquares.add(new ChiObject(computeChiSquare(v), v));
         }
         Collections.sort(chiSquares);
         Collections.reverse(chiSquares);
-
-        SystemController.getLogger().debug("Finished training");
     }
 
     public String classify(Map<String, Integer> doc){
@@ -149,6 +188,13 @@ public class Bayes {
             }
         }
         return bestClass;
+    }
+
+    public String classifyWithLearning(Map<Map<String, Integer>, String> docs){
+        for(Map<String, Integer> doc : docs.keySet()){
+
+        }
+        return null;
     }
 
     public Double getAccuracy (Map<Map<String, Integer>, String> docs){
@@ -244,7 +290,7 @@ public class Bayes {
 
         for(Map<String, Integer> doc : docs.keySet()){
             String actual = docs.get(doc);
-            String pred = classifyWithBestChiSquare(doc, 100);
+            String pred = classify(doc);
             Map<String, Integer> inner = matrix.remove(actual);
             inner.put(pred, inner.remove(pred) + 1);
             matrix.put(actual, inner);

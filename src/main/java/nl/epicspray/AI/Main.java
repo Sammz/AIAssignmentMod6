@@ -253,7 +253,7 @@ public class Main extends Application {
                     b.getBestChiSquare(10);
                     for(Map<String, Integer> doc : tokenized.keySet()){
                         String docClass = tokenized.get(doc);
-                        String predictedDocClass = b.classifyWithBestChiSquare(doc, 100);
+                        String predictedDocClass = b.classify(doc);
                         //System.out.println("class: " + docClass + "     predicted class: " + predictedDocClass);
                         if(docClass.equals(predictedDocClass)){
                             correct ++;

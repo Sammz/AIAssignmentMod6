@@ -23,7 +23,7 @@ public class Logger {
     }
 
     private PrintStream output;
-    private final static DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+    private final static DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss:SSS");
     private LogLevel logLevel;
 
     public Logger(PrintStream output, LogLevel level){
