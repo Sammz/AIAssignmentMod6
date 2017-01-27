@@ -242,26 +242,37 @@ public class Main extends Application {
                 Stage loadStage = makeLoadStage();
                 loadStage.show();
 
-                int correct = 0;
-                int incorrect = 0;
                 try {
                     Bayes b = bayesList.get(classes);
                     Map<Map<String, Integer>, String> tokenized = tokenizer.tokenizeFolder(testOption, testFolder, classes);
                     SystemController.getLogger().debug("Accuary: " + b.getAccuracy(tokenized));
-                    b.getRecall(tokenized);
-                    b.getPrecision(tokenized);
-                    for(Map<String, Integer> doc : tokenized.keySet()){
-                        String docClass = tokenized.get(doc);
-                        String predictedDocClass = b.classify(doc);
-                        //System.out.println("class: " + docClass + "     predicted class: " + predictedDocClass);
-                        if(docClass.equals(predictedDocClass)){
-                            correct ++;
-                        } else {
-                            incorrect ++;
-                        }
+
+                    double accuracy = b.getAccuracy(tokenized);
+                    Map<String, Map<String, Integer>> confusionMatrix = b.getConfusionMatrix(tokenized);
+                    String matrix = "";
+                    matrix += "  | ";
+                    for(String c : classes){
+                        matrix += c + " | ";
                     }
-                    testResultMessage.setText("Correct: " + correct + "\nIncorrect: " + incorrect);
-                    //TODO show more information
+                    matrix += "\n";
+                    for(String c : classes){
+                        matrix += c + " | ";
+                        for(String c1 : classes){
+                            matrix += confusionMatrix.get(c).get(c1) + " | ";
+                        }
+                        matrix += "\n";
+                    }
+
+                    String recallString = "";
+                    Map<String, Double> recall = b.getRecall(tokenized);
+                    for(String klass : recall.keySet()){
+                        recallString +="";
+                    }
+                    //TODO DINGEN
+                    Map<String, Double> precision = b.getPrecision(tokenized);
+
+                    testResultMessage.setText("Accuracy: " + accuracy + "\n\n" + matrix);
+
                 } catch (IllegalFileNameException e) {
                     e.printStackTrace();
                     testErrorMessage.setText(error + e.getMessage());
