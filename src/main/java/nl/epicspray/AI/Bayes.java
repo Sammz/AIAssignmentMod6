@@ -24,7 +24,7 @@ public class Bayes {
     private Map<String, Map<String, Integer>> countWordsPerClass = new HashMap<String, Map<String, Integer>>();
     private Map<String, Integer> totalWordsPerClass = new HashMap<String, Integer>();
     private Map<String, Map<String, Integer>> confusionMatrix;
-    private int K = 3;
+    private int K = 1;
     private int totalDocs;
 
     public void train(List<String> classes, Map<Map<String, Integer>, String> docs){
@@ -32,6 +32,11 @@ public class Bayes {
         D.putAll(docs);
         for(Map<String, Integer> map : D.keySet()){
             V.addAll(map.keySet());
+        }
+        if(classes.contains("F")){
+            K = 1;
+        } else {
+            K = 3;
         }
         totalDocsPerClass = new HashMap<String, Integer>();
         countWordsPerClass = new HashMap<String, Map<String, Integer>>();
