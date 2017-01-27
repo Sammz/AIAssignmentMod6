@@ -5,6 +5,7 @@ import sun.plugin2.gluegen.runtime.CPU;
 
 import java.net.InetAddress;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -18,6 +19,7 @@ public class Bayes {
     private Map<Map<String, Integer>, String> D = new HashMap<Map<String, Integer>, String>();
     private Map<String, Map<String, Double>> chanceOnWordGivenClass;
     private Map<String, Map<String, Map<Boolean, Integer>>> chiSquareMap;
+    private List<ChiObject> chiSquares;
     private int K = 1;
 
     public void train(List<String> classes, Map<Map<String, Integer>, String> docs){
@@ -86,28 +88,19 @@ public class Bayes {
         chiSquareMap = new HashMap<String, Map<String, Map<Boolean, Integer>>>();
         for(String c : C){
             chiSquareMap.put(c, new HashMap<String, Map<Boolean, Integer>>());
+            for(String v : V){
+                chiSquareMap.get(c).put(v, new HashMap<Boolean, Integer>());
+                chiSquareMap.get(c).get(v).put(true, 0);
+            }
             for(Map<String, Integer> map : D.keySet()){
                 if(c.equals(D.get(map))){
-                    for(String v : V){
-                        if (map.containsKey(v)) {
-                            if(chiSquareMap.get(c).containsKey(v)){
-                                chiSquareMap.get(c).get(v).put(true, chiSquareMap.get(c).get(v).get(true) + 1);
-                            } else {
-                                chiSquareMap.get(c).put(v, new HashMap<Boolean, Integer>());
-                                chiSquareMap.get(c).get(v).put(true, 1);
-                                chiSquareMap.get(c).get(v).put(false, 0);
-                            }
-                        } else {
-                            if(chiSquareMap.get(c).containsKey(v)){
-                                chiSquareMap.get(c).get(v).put(false, chiSquareMap.get(c).get(v).get(false) + 1);
-                            } else {
-                                chiSquareMap.get(c).put(v, new HashMap<Boolean, Integer>());
-                                chiSquareMap.get(c).get(v).put(true, 0);
-                                chiSquareMap.get(c).get(v).put(false, 1);
-                            }
-                        }
+                    for(String v : map.keySet()){
+                        chiSquareMap.get(c).get(v).put(true, chiSquareMap.get(c).get(v).get(true) + 1);
                     }
                 }
+            }
+            for(String v : V){
+                chiSquareMap.get(c).get(v).put(false, totalDocs - chiSquareMap.get(c).get(v).get(true));
             }
         }
 
@@ -121,6 +114,14 @@ public class Bayes {
                 chanceOnWordGivenClass.get(c).put(s, val);
             }
         }
+
+        SystemController.getLogger().debug("Composing best chisquare list");
+        chiSquares = new ArrayList<ChiObject>();
+        for(String v : V){
+            chiSquares.add(new ChiObject(computeChiSquare(v), v));
+        }
+        Collections.sort(chiSquares);
+        Collections.reverse(chiSquares);
 
         SystemController.getLogger().debug("Finished training");
     }
@@ -164,6 +165,32 @@ public class Bayes {
             }
         }
         return (double) correct / (double) (incorrect+correct);
+    }
+
+    public List<String> getBestChiSquare(int top){
+        List<String> res = new ArrayList<String>();
+
+        if(top > V.size() -1){
+            top = V.size() -1;
+        }
+        //SystemController.getLogger().warning("Best chi Squares: ");
+        for(int i = 0; i < top; i ++){
+            res.add(chiSquares.get(i).getWord());
+            //SystemController.getLogger().debug(i +" : [" + chis.get(i).getWord() + ", " + chis.get(i).getVal() + "]");
+        }
+
+        return res;
+    }
+
+    public String classifyWithBestChiSquare(Map<String, Integer> doc, int topChi){
+        List<String> best = getBestChiSquare(topChi);
+        doc = new ConcurrentHashMap<String, Integer>(doc);
+        for(String s : doc.keySet()){
+            if(!best.contains(s)){
+                doc.remove(s);
+            }
+        }
+        return  classify(doc);
     }
 
     public Map<String, Double> getPrecision(Map<Map<String, Integer>, String> docs){
@@ -217,7 +244,7 @@ public class Bayes {
 
         for(Map<String, Integer> doc : docs.keySet()){
             String actual = docs.get(doc);
-            String pred = classify(doc);
+            String pred = classifyWithBestChiSquare(doc, 100);
             Map<String, Integer> inner = matrix.remove(actual);
             inner.put(pred, inner.remove(pred) + 1);
             matrix.put(actual, inner);
