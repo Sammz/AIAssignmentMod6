@@ -23,6 +23,7 @@ public class Bayes {
     private Map<String, Integer> totalDocsPerClass = new HashMap<String, Integer>();
     private Map<String, Map<String, Integer>> countWordsPerClass = new HashMap<String, Map<String, Integer>>();
     private Map<String, Integer> totalWordsPerClass = new HashMap<String, Integer>();
+    private Map<String, Map<String, Integer>> confusionMatrix;
     private int K = 3;
     private int totalDocs;
 
@@ -79,10 +80,10 @@ public class Bayes {
                 totalDocs++;
                 totalDocsPerClass.put(c, totalDocsPerClass.remove(c) + 1);
                 for (String s : doc.keySet()) {
-                    if (countWordsPerClass.get(s).containsKey(c)) {
-                        countWordsPerClass.get(s).put(c, countWordsPerClass.get(s).remove(c) + doc.get(c));
+                    if (countWordsPerClass.get(c).containsKey(s)) {
+                        countWordsPerClass.get(c).put(s, countWordsPerClass.get(c).remove(s) + doc.get(s));
                     } else {
-                        countWordsPerClass.get(s).put(c, doc.get(c));
+                        countWordsPerClass.get(c).put(s, doc.get(s));
                     }
                 }
             }
@@ -165,6 +166,10 @@ public class Bayes {
         Collections.reverse(chiSquares);
     }
 
+    public void train(Map<Map<String, Integer>, String> docs){
+        train(C, docs);
+    }
+
     public String classify(Map<String, Integer> doc){
         double max = Double.NEGATIVE_INFINITY;
         String bestClass = null;
@@ -192,14 +197,22 @@ public class Bayes {
 
     public String classifyWithLearning(Map<String, Integer> doc, String className){
         String pred = classify(doc);
-        addToTrainingData(doc, className);
+        Map<Map<String, Integer>, String> map = new HashMap<>();
+        map.put(doc, className);
+        train(map);
         return pred;
     }
 
     public Double getAccuracy (Map<Map<String, Integer>, String> docs, boolean learning){
         int correct = 0;
         int incorrect = 0;
-        Map<String, Map<String, Integer>> matrix = getConfusionMatrix(docs, learning);
+        Map<String, Map<String, Integer>> matrix = null;
+        if(confusionMatrix == null) {
+            matrix = getConfusionMatrix(docs, learning);
+        } else {
+            matrix = confusionMatrix;
+        }
+
         for(String c : matrix.keySet()){
             for(String c1 : matrix.get(c).keySet()){
                 if(c1.equals(c)){
@@ -209,6 +222,8 @@ public class Bayes {
                 }
             }
         }
+        SystemController.getLogger().debug("Correct: " + correct + " Incorrect: " + incorrect);
+        SystemController.getLogger().debug(matrix.toString());
         return (double) correct / (double) (incorrect+correct);
     }
 
@@ -239,7 +254,12 @@ public class Bayes {
     }
 
     public Map<String, Double> getPrecision(Map<Map<String, Integer>, String> docs, boolean learning){
-        Map<String, Map<String, Integer>> matrix = getConfusionMatrix(docs, learning);
+        Map<String, Map<String, Integer>> matrix = null;
+        if(confusionMatrix == null) {
+            matrix = getConfusionMatrix(docs, learning);
+        } else {
+            matrix = confusionMatrix;
+        }
         Map<String, Double> res = new HashMap<String, Double>();
         for(String c : C){
             int correct = 0;
@@ -259,7 +279,12 @@ public class Bayes {
     }
 
     public Map<String, Double> getRecall(Map<Map<String, Integer>, String> docs, boolean learning){
-        Map<String, Map<String, Integer>> matrix = getConfusionMatrix(docs, learning);
+        Map<String, Map<String, Integer>> matrix = null;
+        if(confusionMatrix == null) {
+            matrix = getConfusionMatrix(docs, learning);
+        } else {
+            matrix = confusionMatrix;
+        }
         Map<String, Double> res = new HashMap<String, Double>();
         for(String c : C){
             int correct = 0;
@@ -312,6 +337,7 @@ public class Bayes {
             }
             System.out.println(" ");
         }
+        this.confusionMatrix = matrix;
         return matrix;
     }
 
