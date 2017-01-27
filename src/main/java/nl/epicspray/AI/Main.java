@@ -36,6 +36,7 @@ public class Main extends Application {
     private Map<List<String>, Bayes> bayesList = new HashMap<List<String>, Bayes>();
     private final Tokenizer tokenizer = new Tokenizer();
     private final String error = "Error: ";
+    private static Text trainedClasses;
 
     public static void main(String[] args) {
         launch(args);
@@ -69,9 +70,15 @@ public class Main extends Application {
         sceneTitle.setFont(Font.font("Arial", FontWeight.NORMAL, 20));
         informationPane.add(sceneTitle, 0, 0, 2, 1);
 
-        Text info = new Text("Folder with train data:\nIn the folder should be a folder for each class \nwith the name of that class containing all \nfiles of that class to train with." +
-                "\nSupports infinite classes.\nSeparate classes with spaces.\nTest folder:\n");
-        informationPane.add(info, 0, 1, 1, 1);
+        Text info = new Text("For both training and testing this classifier the input\nfolders must have a structure like this: " +
+                "A folder with for\neach class a subfolder with the name of that class and\nall files of that class in it.");
+        informationPane.add(info, 0, 1, 1, 4);
+
+        Text trainedClassesHeader = new Text("Sets of classes trained:");
+        trainedClassesHeader.setFont(Font.font("Arial", FontWeight.NORMAL, 20));;
+        informationPane.add(trainedClassesHeader,0,6);
+        trainedClasses = new Text("No training has been done yet.");
+        informationPane.add(trainedClasses,0,7);
     }
 
     private void setTrainPane(GridPane trainPane) {
@@ -91,53 +98,53 @@ public class Main extends Application {
         trainFolderLocation.setPromptText("Enter path to folder");
         trainPane.add(trainFolderLocation, 1, 1);
 
-        Label trainClassesLabel = new Label("Classes of documents:");
-        trainPane.add(trainClassesLabel, 0, 2);
-        final TextField trainClasses = new TextField();
-        trainClasses.setPromptText("class class class class ...");
-        trainPane.add(trainClasses, 1, 2);
+//        Label trainClassesLabel = new Label("Classes of documents:");
+//        trainPane.add(trainClassesLabel, 0, 2);
+//        final TextField trainClasses = new TextField();
+//        trainClasses.setPromptText("class class class class ...");
+//        trainPane.add(trainClasses, 1, 2);
 
         Button trainButton = new Button("Train");
         HBox trainhbox = new HBox(10);
         trainhbox.setAlignment(Pos.BOTTOM_RIGHT);
         trainhbox.getChildren().add(trainButton);
-        trainPane.add(trainhbox, 1, 4);
-
-        final Text trainResultMessage = new Text();
-        trainPane.add(trainResultMessage, 0, 6,2,1);
+        trainPane.add(trainhbox, 1, 3);
 
         final Text trainErrorMessage = new Text();
-        trainPane.add(trainErrorMessage, 0, 8,2,1);
+        trainPane.add(trainErrorMessage, 0, 4,2,1);
+
+        final Text trainResultMessage = new Text();
+        trainPane.add(trainResultMessage, 0, 5,2,1);
+
+
 
         trainButton.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
             public void handle(ActionEvent t) {
 
-                onTrainButtonClick(trainErrorMessage, trainResultMessage, trainFolderLocation, trainClasses);
+                onTrainButtonClick(trainErrorMessage, trainResultMessage, trainFolderLocation);
             }
         });
     }
 
-    private void onTrainButtonClick(Text trainErrorMessage, Text trainResultMessage, TextField trainFolderLocation, TextField trainClasses) {
+    private void onTrainButtonClick(Text trainErrorMessage, Text trainResultMessage, TextField trainFolderLocation) {
         String trainOption = "train";
         trainErrorMessage.setText("");
         trainResultMessage.setText("");
         File trainFolder = new File(trainFolderLocation.getText());
-        if (!trainClasses.getText().equals("") &&!trainClasses.getText().equals(" ") && trainClasses.getText().contains(" ") && trainFolder.exists() && trainFolder.isDirectory()) {
-
+        if (trainFolder.exists() && trainFolder.isDirectory()) {
             Stage loadStage = makeLoadStage();
             loadStage.show();
-
-            String[] classesArray = trainClasses.getText().split(" ");
             List<String> classes = new ArrayList<String>();
-            for (String clas : classesArray) {
-                classes.add(clas);
+            for (File f : trainFolder.listFiles()) {
+                classes.add(f.getName());
             }
             if(!bayesList.keySet().contains(classes)){
                 Bayes bayes = new Bayes();
                 bayesList.put(classes, bayes);
             }
+            setTrainedClassesText();
             try {
                 Bayes b =bayesList.get(classes);
                 Map<Map<String, Integer>, String> tokenized = tokenizer.tokenizeFolder(trainOption, trainFolder, classes);
@@ -153,8 +160,20 @@ public class Main extends Application {
             }
             loadStage.close();
         } else {
-            trainErrorMessage.setText(error + "Location and or classes have wrong input");
+            trainErrorMessage.setText(error + "Location has wrong input");
         }
+    }
+
+    private void setTrainedClassesText() {
+        StringBuilder sb = new StringBuilder();
+        for(List<String> classesSet : bayesList.keySet()){
+            for (String s : classesSet){
+                sb.append(s);
+                sb.append(" ");
+            }
+            sb.append("\n");
+        }
+        trainedClasses.setText(sb.toString());
     }
 
     private void setTestPane(GridPane testPane) {
@@ -173,11 +192,11 @@ public class Main extends Application {
         testFolderLocation.setPromptText("Enter path to folder");
         testPane.add(testFolderLocation, 1, 1);
 
-        Label testClassesLabel = new Label("Classes of documents:");
-        testPane.add(testClassesLabel, 0, 2);
-        final TextField testClasses = new TextField();
-        testClasses.setPromptText("class class class class ...");
-        testPane.add(testClasses, 1, 2);
+//        Label testClassesLabel = new Label("Classes of documents:");
+//        testPane.add(testClassesLabel, 0, 2);
+//        final TextField testClasses = new TextField();
+//        testClasses.setPromptText("class class class class ...");
+//        testPane.add(testClasses, 1, 2);
 
         Button testButton = new Button("Test");
         HBox testhbox = new HBox(10);
@@ -185,35 +204,37 @@ public class Main extends Application {
         testhbox.getChildren().add(testButton);
         testPane.add(testhbox, 1, 3);
 
-        final Text testResultMessage = new Text();
-        testPane.add(testResultMessage, 0, 6,2,1);
-
         final Text testErrorMessage = new Text();
-        testPane.add(testErrorMessage, 0,8,2,1);
+        testPane.add(testErrorMessage, 0,4,2,1);
+
+        final Text testResultMessage = new Text();
+        testPane.add(testResultMessage, 0, 5,2,1);
+
+
 
         testButton.setOnAction(new EventHandler<ActionEvent>() {
 
             @Override
             public void handle(ActionEvent t) {
 
-                onTestButtonClick(testErrorMessage, testResultMessage, testFolderLocation, testClasses);
+                onTestButtonClick(testErrorMessage, testResultMessage, testFolderLocation);
 
 
             }
         });
     }
 
-    private void onTestButtonClick(Text testErrorMessage, Text testResultMessage, TextField testFolderLocation, TextField testClasses) {
+    private void onTestButtonClick(Text testErrorMessage, Text testResultMessage, TextField testFolderLocation) {
         String testOption = "train";
         testErrorMessage.setText("");
         testResultMessage.setText("");
         File testFolder = new File(testFolderLocation.getText());
-        if (!testClasses.getText().equals("") &&!testClasses.getText().equals(" ") && testClasses.getText().contains(" ") && testFolder.exists() && testFolder.isDirectory()) {
-            String[] classesArray = testClasses.getText().split(" ");
+        if (testFolder.exists() && testFolder.isDirectory()) {
+
             List<String> classes = new ArrayList<String>();
 
-            for (String clas : classesArray) {
-                classes.add(clas);
+            for (File f : testFolder.listFiles()) {
+                classes.add(f.getName());
             }
             if (bayesList.keySet().contains(classes)) {
 
@@ -251,7 +272,7 @@ public class Main extends Application {
                 testErrorMessage.setText(error +"Not all classes have been trained.");
             }
         } else {
-            testErrorMessage.setText(error + "Location and or classes have wrong input");
+            testErrorMessage.setText(error + "Location has wrong input");
         }
     }
 

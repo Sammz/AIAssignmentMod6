@@ -38,7 +38,7 @@ public class Tokenizer {
                                 fileClass = fileFolder.getName();
 
                             } else {
-                                throw new IllegalFileNameException("The folder: "+ fileFolder.getName() + " is not named as a specified class.");
+                                throw new IllegalFileNameException("Internal error.");
                             }
                             for (File file : fileFolder.listFiles()) {
                                 docs.put(tokenizeFile(file), fileClass);
@@ -48,13 +48,13 @@ public class Tokenizer {
                     return docs;
                 } else {
                     if(classes.size() > folder.listFiles().length) {
-                        throw new CouldNotStartTokenizingException("Too many classes specified.");
+                        throw new CouldNotStartTokenizingException("Internal error.");
                     } else {
-                        throw new CouldNotStartTokenizingException("Not enough classes specified.");
+                        throw new CouldNotStartTokenizingException("Internal error.");
                     }
                 }
             } else {
-                throw new CouldNotStartTokenizingException("Given file doesn't exist or is no folder.");
+                throw new CouldNotStartTokenizingException("Internal error.");
             }
     }
 
