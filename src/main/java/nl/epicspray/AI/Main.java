@@ -23,6 +23,8 @@ import nl.epicspray.AI.exceptions.IllegalFileNameException;
 import nl.epicspray.AI.util.SystemController;
 
 import java.io.File;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -48,7 +50,7 @@ public class Main extends Application {
     public void start(Stage primaryStage) {
         primaryStage.setTitle("Classifier");
         HBox rootBox = new HBox();
-        Scene scene = new Scene(rootBox, 1300, 600);
+        Scene scene = new Scene(rootBox, 1450, 500);
         GridPane informationPane = new GridPane();
         GridPane trainPane = new GridPane();
         GridPane testPane = new GridPane();
@@ -150,8 +152,13 @@ public class Main extends Application {
                 Bayes b = bayesList.get(classes);
                 Map<Map<String, Integer>, String> tokenized = tokenizer.tokenizeFolder(trainOption, trainFolder, classes);
                 b.train(classes, tokenized);
-                trainResultMessage.setText("Trained succesfully!\nBest ChiSquare: " + b.getHighestChiSquare());
-                //TODO show more info maybe
+
+                String chiSquares = "";
+                for(String chi : b.getBestChiSquare(10)){
+                    chiSquares += chi + "\n";
+                }
+
+                trainResultMessage.setText("Trained succesfully!\n\nBest 10 ChiSquares:\n" + chiSquares);
             } catch (IllegalFileNameException e) {
                 e.printStackTrace();
                 trainErrorMessage.setText(error + e.getMessage());
@@ -279,7 +286,7 @@ public class Main extends Application {
     private String easyStatsToString(Map<String, Double> stats) {
         String recallString = "";
         for (String classRecall : stats.keySet()) {
-            recallString += classRecall + ": " + stats.get(classRecall).toString() + "\n";
+            recallString += classRecall + ": " + round(stats.get(classRecall),3) + "\n";
         }
         return recallString;
     }
@@ -292,25 +299,20 @@ public class Main extends Application {
             }
         }
         String matrix = "Class:";
-        matrix = center(matrix, 8);
-        if(longestClass.length() > matrix.length()) {
-            matrix = center(matrix, 8);
-        }
+        matrix = center(matrix, longestClass.length());
         matrix += " | ";
         for (String c : classes) {
-            if(longestClass.length() > c.length()) {
-                c = center(c, 8);
-            }
+
+            c = center(c, longestClass.length());
+
             matrix += c + " | ";
         }
         matrix += "\n";
         for (String c : classes) {
-            matrix += center(c, 8) + " | ";
+            matrix += center(c, longestClass.length()) + " | ";
             for (String c1 : classes) {
                 String number = confusionMatrix.get(c).get(c1).toString();
-                if(longestClass.length() > number.length()) {
-                    number = center(number, 8);
-                }
+                number = center(number, longestClass.length());
                 matrix += number + " | ";
             }
             matrix += "\n";
@@ -326,14 +328,6 @@ public class Main extends Application {
         loadStage.sizeToScene();
         loadStage.setTitle("Loading...      Wait till this disappears.");
         return loadStage;
-    }
-
-    public static String padRight(String s, int n) {
-        return String.format("%1$-" + n + "s", s);
-    }
-
-    public static String padLeft(String s, int n) {
-        return String.format("%1$" + n + "s", s);
     }
 
     public static String center(String s, int size) {
@@ -353,6 +347,14 @@ public class Main extends Application {
             sb.append(pad);
         }
         return sb.toString();
+    }
+
+    public static double round(double value, int places) {
+        if (places < 0) throw new IllegalArgumentException();
+
+        BigDecimal bd = new BigDecimal(value);
+        bd = bd.setScale(places, RoundingMode.HALF_UP);
+        return bd.doubleValue();
     }
 
 
